@@ -85,7 +85,16 @@ for fname in TestImages:
     plt.figure(4)
     plt.imshow(combined_binary, cmap = 'gray')
 
+plt.figure(5)
+StraightLineImage = plt.imread('test_images/straight_lines1.jpg')
+plt.imshow(StraightLineImage)
 
+src = np.float32([[200,700],[1150,700],[600,450],[800,450]])
+dst = np.float32([[200,700],[1200,700],[200,100],[1200,100]])
+M = cv2.getPerspectiveTransform(src, dst)
+warped = cv2.warpPerspective(combined_binary, M, (combined_binary.shape[1],combined_binary.shape[0]), flags=cv2.INTER_LINEAR)
 
+plt.figure(6)
+plt.imshow(warped)
 
 plt.show()
