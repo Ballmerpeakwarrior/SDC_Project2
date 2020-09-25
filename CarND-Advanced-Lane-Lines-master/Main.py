@@ -85,16 +85,41 @@ for fname in TestImages:
     plt.figure(4)
     plt.imshow(combined_binary, cmap = 'gray')
 
-plt.figure(5)
-StraightLineImage = plt.imread('test_images/straight_lines1.jpg')
-plt.imshow(StraightLineImage)
-
-src = np.float32([[200,700],[1150,700],[600,450],[800,450]])
-dst = np.float32([[200,700],[1200,700],[200,100],[1200,100]])
+trap = np.array([[[240,686],[1055,675],[690,450],[587,450]]], np.int32)
+wwww = np.array([[[300,img.shape[1]],[950,img.shape[1]],[950,0],[300,0]]], np.int32)
+src = np.float32(trap)
+dst = np.float32(wwww)
 M = cv2.getPerspectiveTransform(src, dst)
 warped = cv2.warpPerspective(combined_binary, M, (combined_binary.shape[1],combined_binary.shape[0]), flags=cv2.INTER_LINEAR)
 
 plt.figure(6)
 plt.imshow(warped)
+
+plt.figure(7)
+bottom_half = warped[warped.shape[0]//2:,:]
+histogram = np.sum(bottom_half, axis=0)
+plt.plot(histogram)
+
+midpoint = np.int(histogram.shape[0]//2) # Width of the image/2
+leftx_base = np.argmax(histogram[:midpoint]) # Index of point in histogram that has max value from 0 - midpoint
+rightx_base = np.argmax(histogram[midpoint:]) + midpoint # Index of point in histogram that has max value from midpoint to end. Midpoint is added to get index with reference to 0
+
+nwindows = 9
+margin = 100
+minpix = 50
+
+# Set height of windows - based on nwindows above and image shape
+window_height = np.int(warped.shape[0]//nwindows)
+# Identify the x and y positions of all nonzero (i.e. activated) pixels in the image
+nonzero = warped.nonzero()
+nonzeroy = np.array(nonzero[0])
+nonzerox = np.array(nonzero[1])
+# Current positions to be updated later for each window in nwindows
+leftx_current = leftx_base
+rightx_current = rightx_base
+
+# Create empty lists to receive left and right lane pixel indices
+left_lane_inds = []
+right_lane_inds = []
 
 plt.show()
