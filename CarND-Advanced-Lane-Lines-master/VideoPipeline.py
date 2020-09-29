@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import glob
-
+from moviepy.editor import VideoFileClip
 
 ##### ----- Compute the camera calibration matrix and distortion coefficients given a set of chessboard images ----- #####
 
@@ -51,15 +51,9 @@ plt.imshow(undist)
 
 
 ##### ----- Apply a distortion correction to raw images ----- #####
-TestImages = glob.glob('test_images/test*.jpg')
-c=4
-for fname in TestImages:
-    c=c+4
-    #Import test image
-    img = cv2.imread(fname)
-
+def process_image(image):
     #Undistort test image
-    undist = cv2.undistort(img, mtx, dist, None, mtx)
+    undist = cv2.undistort(image, mtx, dist, None, mtx)
 
 ##### ----- Use color transforms, gradients, etc., to create a thresholded binary image ----- #####
     #Grayscale & HLS Color Space
@@ -87,10 +81,6 @@ for fname in TestImages:
     combined_binary = np.zeros_like(sxbinary)
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
 
-    plt.figure(c)
-    plt.imshow(combined_binary, cmap = 'gray')
-    mpimg.imsave("output_images/"+fname+"_combBin.jpg", combined_binary, cmap = 'gray')
-
     trap = np.array([[[240,686],[1055,675],[690,450],[587,450]]], np.int32)
     wwww = np.array([[[300,img.shape[1]],[950,img.shape[1]],[950,0],[300,0]]], np.int32)
     src = np.float32(trap)
@@ -98,16 +88,9 @@ for fname in TestImages:
     M = cv2.getPerspectiveTransform(src, dst)
     warped = cv2.warpPerspective(combined_binary, M, (combined_binary.shape[1],combined_binary.shape[0]), flags=cv2.INTER_LINEAR)
 
-    plt.figure(c+1)
-    plt.imshow(warped)
-    mpimg.imsave("output_images/"+fname+"_warped.jpg", warped, cmap = 'gray')
-
-    plt.figure(c+2)
     bottom_half = []
     bottom_half = warped[warped.shape[0]//2:,:]
     histogram = np.sum(bottom_half, axis=0)
-    plt.plot(histogram)
-    plt.savefig("output_images/"+fname+"_hist.jpg")
 
     midpoint = np.int(histogram.shape[0]//2) # Width of the image/2
     leftx_base = np.argmax(histogram[:midpoint]) # Index of point in histogram that has max value from 0 - midpoint
@@ -197,11 +180,6 @@ for fname in TestImages:
     out_img[lefty, leftx] = [255, 0, 0]
     out_img[righty, rightx] = [0, 0, 255]
 
-    # Plots the left and right polynomials on the lane lines
-    plt.figure(c+3)
-    plt.plot(left_fitx, ploty, color='yellow')
-    plt.plot(right_fitx, ploty, color='yellow')
-
     # Define y-value where we want radius of curvature
     # We'll choose the maximum y-value, corresponding to the bottom of the image
     y_eval = np.max(ploty)
@@ -214,9 +192,6 @@ for fname in TestImages:
     right_curverad = ((1 + (2*right_fitx[0]*y_eval*ym_per_pix + right_fitx[1])**2)**1.5) / np.absolute(2*right_fitx[0])
     print(left_curverad, right_curverad)
 
-    plt.imshow(out_img)
-    plt.savefig("output_images/"+fname+"_curvefit.jpg")
-
     vehicle_l = midpoint - left_fitx[719]
     vehicle_r = right_fitx[719] - midpoint
 
@@ -225,8 +200,20 @@ for fname in TestImages:
 
     uM = cv2.getPerspectiveTransform(dst, src)
     unwarped = cv2.warpPerspective(out_img, uM, (out_img.shape[1],out_img.shape[0]), flags=cv2.INTER_LINEAR)
-    plt.figure(c+4)
-    mpimg.imsave("output_images/"+fname+"_unwarped.jpg", unwarped, cmap = 'gray')
+
+    return unwarped
+
+white_output = 'output_images/solidWhiteRight.mp4'
+## To speed up the testing process you may want to try your pipeline on a shorter subclip of the video
+## To do so add .subclip(start_second,end_second) to the end of the line below
+## Where start_second and end_second are integer values representing the start and end of the subclip
+## You may also uncomment the following line for a subclip of the first 5 seconds
+##clip1 = VideoFileClip("test_videos/solidWhiteRight.mp4").subclip(0,5)
+clip1 = VideoFileClip("project_video.mp4")
+white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
+white_clip.write_videofile(white_output, audio=False)
+
+
 
 
 
