@@ -199,9 +199,14 @@ for fname in TestImages:
 
     # Plots the left and right polynomials on the lane lines
     plt.figure(c+3)
-    plt.plot(left_fitx, ploty, color='yellow')
-    plt.plot(right_fitx, ploty, color='yellow')
-
+    poly1 = plt.plot(left_fitx, ploty, color='yellow')
+    poly2 = plt.plot(right_fitx, ploty, color='yellow')
+    plt.xlim(0,1280)
+    plt.ylim(0,720)
+    plt.savefig("output_images/"+fname+"_polyfit.jpg")
+    LaneLines = plt.imread("output_images/"+fname+"_polyfit.jpg")
+    LaneLines = cv2.resize(LaneLines, (1280, 720))
+   
     # Define y-value where we want radius of curvature
     # We'll choose the maximum y-value, corresponding to the bottom of the image
     y_eval = np.max(ploty)
@@ -224,13 +229,13 @@ for fname in TestImages:
     print('Distance from right', vehicle_r)
 
     uM = cv2.getPerspectiveTransform(dst, src)
-    unwarped = cv2.warpPerspective(out_img, uM, (out_img.shape[1],out_img.shape[0]), flags=cv2.INTER_LINEAR)
+    unwarped = cv2.warpPerspective(LaneLines, uM, (LaneLines.shape[1],LaneLines.shape[0]), flags=cv2.INTER_LINEAR)
     plt.figure(c+4)
     mpimg.imsave("output_images/"+fname+"_unwarped.jpg", unwarped, cmap = 'gray')
 
     superimposed = []
     superimposed = cv2.addWeighted(unwarped, 0.8, undist, 1, 0)
-    plt.figure(c+5)
+    plt.figure(c+6)
     mpimg.imsave("output_images/"+fname+"_superimposed.jpg", superimposed)
 
 
