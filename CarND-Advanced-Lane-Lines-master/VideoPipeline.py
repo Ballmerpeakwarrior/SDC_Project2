@@ -81,8 +81,8 @@ def process_image(image):
     combined_binary = np.zeros_like(sxbinary)
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
 
-    trap = np.array([[[240,686],[1055,675],[690,450],[587,450]]], np.int32)
-    wwww = np.array([[[300,img.shape[1]],[950,img.shape[1]],[950,0],[300,0]]], np.int32)
+    trap = np.array([[[568, 468], [715, 468], [1040, 680], [270, 680]]], np.int32)
+    wwww = np.array([[[200, 0], [1000, 0], [1000, 680], [200, 680]]], np.int32)
     src = np.float32(trap)
     dst = np.float32(wwww)
     M = cv2.getPerspectiveTransform(src, dst)
@@ -199,7 +199,23 @@ def process_image(image):
     print('Distance from right', vehicle_r)
 
     uM = cv2.getPerspectiveTransform(dst, src)
-    unwarped = cv2.warpPerspective(out_img, uM, (out_img.shape[1],out_img.shape[0]), flags=cv2.INTER_LINEAR)
+    
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(warped).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(color_warp, uM, (out_img.shape[1], out_img.shape[0])) 
+    # Combine the result with the original image
+    unwarped = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
 
     return unwarped
 

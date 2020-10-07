@@ -61,7 +61,7 @@ for fname in TestImages:
     #Undistort test image
     undist = cv2.undistort(img, mtx, dist, None, mtx)
 
-##### ----- Use color transforms, gradients, etc., to create a thresholded binary image ----- #####
+    ##### ----- Use color transforms, gradients, etc., to create a thresholded binary image ----- #####
     #Grayscale & HLS Color Space
     gray = cv2.cvtColor(undist, cv2.COLOR_BGR2GRAY)
     hls = cv2.cvtColor(undist, cv2.COLOR_RGB2HLS)
@@ -73,7 +73,7 @@ for fname in TestImages:
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
 
     # Threshold x gradient
-    thresh_min = 20
+    thresh_min = 70
     thresh_max = 100
     sxbinary = np.zeros_like(scaled_sobel)
     sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
@@ -91,8 +91,10 @@ for fname in TestImages:
     plt.imshow(combined_binary, cmap = 'gray')
     mpimg.imsave("output_images/"+fname+"_combBin.jpg", combined_binary, cmap = 'gray')
 
-    trap = np.array([[[240,686],[1055,675],[690,450],[587,450]]], np.int32)
-    wwww = np.array([[[300,img.shape[1]],[950,img.shape[1]],[950,0],[300,0]]], np.int32)
+    #trap = np.array([[[240,686],[1055,675],[690,450],[587,450]]], np.int32)
+    #wwww = np.array([[[100,img.shape[1]],[1100,img.shape[1]],[1100,0],[100,0]]], np.int32)
+    trap = np.array([[[568, 468], [715, 468], [1040, 680], [270, 680]]], np.int32)
+    wwww = np.array([[[200, 0], [1000, 0], [1000, 680], [200, 680]]], np.int32)
     src = np.float32(trap)
     dst = np.float32(wwww)
     M = cv2.getPerspectiveTransform(src, dst)
@@ -206,7 +208,7 @@ for fname in TestImages:
     plt.savefig("output_images/"+fname+"_polyfit.jpg")
     LaneLines = plt.imread("output_images/"+fname+"_polyfit.jpg")
     LaneLines = cv2.resize(LaneLines, (1280, 720))
-   
+
     # Define y-value where we want radius of curvature
     # We'll choose the maximum y-value, corresponding to the bottom of the image
     y_eval = np.max(ploty)
@@ -238,4 +240,23 @@ for fname in TestImages:
     plt.figure(c+6)
     mpimg.imsave("output_images/"+fname+"_superimposed.jpg", superimposed)
 
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(warped).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(color_warp, uM, (out_img.shape[1], out_img.shape[0])) 
+    # Combine the result with the original image
+    result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+    mpimg.imsave("output_images/"+fname+"_superimposed.jpg", result)
+
+    #plt.show()
+    
